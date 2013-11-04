@@ -31,6 +31,7 @@ In terms of hardware support, the following drivers have been implemented:
   * SmartRF06 EB and BB peripherals
     * LEDs
     * Buttons
+    * ADC sensors (on-chip VDD / 3 and temperature, ambient light sensor)
     * UART connectivity over the XDS100v3 backchannel (EB only)
 
 Requirements
