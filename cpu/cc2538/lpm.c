@@ -42,6 +42,7 @@
 #include "dev/scb.h"
 #include "dev/rfcore-xreg.h"
 #include "dev/usb-regs.h"
+#include "dev/uart.h"
 #include "rtimer-arch.h"
 #include "reg.h"
 
@@ -191,15 +192,18 @@ lpm_enter()
   rtimer_clock_t duration;
 
   /*
-   * If either the RF or the USB is on, dropping to PM1/2 would equal pulling
-   * the rug (32MHz XOSC) from under their feet. Thus, we only drop to PM0.
-   * PM0 is also used if max_pm==0
+   * If either the RF, the USB or the UART TX is on, dropping to PM1/2 would
+   * equal pulling the rug (32MHz XOSC) from under their feet. Thus, we only
+   * drop to PM0. PM0 is also used if max_pm==0.
    *
    * Note: USB Suspend/Resume/Remote Wake-Up are not supported. Once the PLL is
    * on, it stays on.
    */
   if((REG(RFCORE_XREG_FSMSTAT0) & RFCORE_XREG_FSMSTAT0_FSM_FFCTRL_STATE) != 0
-     || REG(USB_CTRL) != 0 || max_pm == 0) {
+     || REG(USB_CTRL) != 0
+     || ((REG(SYS_CTRL_RCGCUART) & SYS_CTRL_RCGCUART_UART) != 0
+         && (REG(UART_BASE | UART_FR) & UART_FR_TXFE) == 0)
+     || max_pm == 0) {
     enter_pm0();
 
     /* We reach here when the interrupt context that woke us up has returned */
@@ -207,7 +211,8 @@ lpm_enter()
   }
 
   /*
-   * USB PLL was off. Radio was off: Some Duty Cycling in place.
+   * UART TX was off. USB PLL was off. Radio was off: Some Duty Cycling in
+   * place.
    * rtimers run on the Sleep Timer. Thus, if we have a scheduled rtimer
    * task, a Sleep Timer interrupt will fire and will wake us up.
    * Choose the most suitable PM based on anticipated deep sleep duration
@@ -224,7 +229,8 @@ lpm_enter()
   }
 
   /* If we reach here, we -may- (but may as well not) be dropping to PM1+. We
-   * know the USB and RF are off so we can switch to the 16MHz RCOSC. */
+   * know the UART TX, USB and RF are off so we can switch to the 16MHz
+   * RCOSC. */
   select_16_mhz_rcosc();
 
   /*
