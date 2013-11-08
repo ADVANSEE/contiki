@@ -266,6 +266,7 @@ serial_to_tun(FILE *inslip, int outfd)
             printf("\n");
           }
         }
+	printf("Write to tun\n");
 	if(write(outfd, uip.inbuf, inbufptr) != inbufptr) {
 	  err(1, "serial_to_tun: write");
 	}
@@ -609,6 +610,8 @@ ifconf(const char *tundev, const char *ipaddr)
   ssystem("ifconfig %s inet `hostname` up", tundev);
   if (timestamp) stamptime();
   ssystem("ifconfig %s add %s", tundev, ipaddr);
+
+  ssystem("ifconfig %s inet 172.16.0.1 pointopoint 172.16.0.2", tundev);
 
 /* radvd needs a link local address for routing */
 #if 0

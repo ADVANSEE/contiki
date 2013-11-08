@@ -96,7 +96,7 @@ public class ContikiRadio extends Radio implements ContikiMoteInterface, PolledA
   /**
    * Transmission bitrate (kbps).
    */
-  private double RADIO_TRANSMISSION_RATE_kbps;
+  public double RADIO_TRANSMISSION_RATE_kbps;
 
   private RadioPacket packetToMote = null;
 

@@ -158,7 +158,7 @@ clock_init(void)
   TA1CCR1 = INTERVAL;
 
   /* Start Timer_A in continuous mode. */
-  TA1CTL |= MC1;
+  TA1CTL |= MC_2;
 
   count = 0;
 

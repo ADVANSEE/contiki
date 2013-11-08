@@ -76,7 +76,7 @@ PROCESS_THREAD(border_router_process, ev, data)
     rpl_dag_t *dag;
     char buf[sizeof(dag_id)];
     memcpy(buf,dag_id,sizeof(dag_id));
-    dag = rpl_set_root((uip_ip6addr_t *)buf);
+    dag = rpl_set_root(RPL_DEFAULT_INSTANCE, (uip_ip6addr_t *)buf);
     
     /* Assign separate addresses to the uip stack and the host network
         interface, but with the same prefix E.g. bbbb::ff:fe00:200 to

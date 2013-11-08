@@ -51,7 +51,7 @@ SHELL_COMMAND(tcpsend_command,
 	      &shell_tcpsend_process);
 /*---------------------------------------------------------------------------*/
 
-#define MAX_SERVERLEN 16
+#define MAX_SERVERLEN 64
 
 static uip_ipaddr_t serveraddr;
 static char server[MAX_SERVERLEN + 1];

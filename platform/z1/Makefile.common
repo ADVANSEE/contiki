@@ -38,6 +38,16 @@ CONTIKI_TARGET_SOURCEFILES += i2cmaster.c adxl345.c
 MCU=msp430f2617
 include $(CONTIKI)/cpu/msp430/Makefile.msp430
 
+ifeq "$(shell msp430-gcc -dumpversion)" "4.7.0"
+ifndef GCC470FLAGS
+GCC470FLAGS += -mmemory-model=medium \
+	          -ffunction-sections \
+               -fdata-sections
+endif
+CFLAGS += $(GCC470FLAGS)
+LDFLAGS += $(GCC470FLAGS)
+endif
+
 # Add LDFLAGS after IAR_PATH is set
 ifdef IAR
 LDFLAGSNO += -xm "$(IAR_PATH)/lib/dlib/dl430xsfn.r43" -f "$(IAR_PATH)/config/lnk430f2617.xcl"

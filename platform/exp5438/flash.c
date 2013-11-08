@@ -43,8 +43,8 @@
 #define FLASH_TIMEOUT 30
 #define FLASH_REQ_TIMEOUT 150
 
-#define INFOMEM_LO (unsigned short *)0x1800
-#define INFOMEM_HI (unsigned short *)0x1a00
+#define INFOMEM_LO 0x1800
+#define INFOMEM_HI 0x1a00
 
 static uint16_t sfrie;
 
@@ -95,12 +95,12 @@ lock_infomem(void)
 }
 /*---------------------------------------------------------------------------*/
 void
-flash_clear(unsigned short *ptr)
+flash_clear(unsigned long addr)
 {
   uint8_t r;
 
   /* If ptr is in infomem, we need to unlock it first. */
-  if(ptr >= INFOMEM_LO && ptr <= INFOMEM_HI) {
+  if(addr >= INFOMEM_LO && addr <= INFOMEM_HI) {
     unlock_infomem();
   }
 
@@ -110,22 +110,22 @@ flash_clear(unsigned short *ptr)
 	     unless run from RAM */
   }
   FCTL1 = 0xa502;               /* ERASE = 1 */
-  *ptr  = 0;                    /* erase Flash segment */
+  *((unsigned char*)addr) = 0;  /* erase Flash segment */
   FCTL1 = 0xa500;               /* ERASE = 0 automatically done?! */
   FCTL3 = 0xa510;               /* Lock = 1 */
 
-  if(ptr >= INFOMEM_LO && ptr <= INFOMEM_HI) {
+  if(addr >= INFOMEM_LO && addr <= INFOMEM_HI) {
     lock_infomem();
   }
 }
 /*---------------------------------------------------------------------------*/
 void
-flash_write(unsigned short *ptr, unsigned short word)
+flash_write(unsigned long addr, uint16_t word)
 {
   uint8_t r;
 
   /* If ptr is in infomem, we need to unlock it first. */
-  if(ptr >= INFOMEM_LO && ptr <= INFOMEM_HI) {
+  if(addr >= INFOMEM_LO && addr <= INFOMEM_HI) {
     unlock_infomem();
   }
 
@@ -135,11 +135,11 @@ flash_write(unsigned short *ptr, unsigned short word)
 	    run from RAM */
   }
   FCTL1 = 0xa540;              /* WRT = 1 */
-  *ptr  = word;                /* program Flash word */
+  *((unsigned char*)addr) = word; /* program Flash word */
   FCTL1 = 0xa500;              /* WRT = 0 */
   FCTL3 = 0xa510;              /* Lock = 1 */
 
-  if(ptr >= INFOMEM_LO && ptr <= INFOMEM_HI) {
+  if(addr >= INFOMEM_LO && addr <= INFOMEM_HI) {
     lock_infomem();
   }
 }

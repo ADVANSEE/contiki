@@ -82,21 +82,17 @@ PROCESS_THREAD(example_collect_process, ev, data)
   }
 
   /* Allow some time for the network to settle. */
-  etimer_set(&et, 120 * CLOCK_SECOND);
-  PROCESS_WAIT_UNTIL(etimer_expired(&et));
+  etimer_set(&periodic, 120 * CLOCK_SECOND);
 
   while(1) {
+
+    PROCESS_WAIT_EVENT();
 
     /* Send a packet every 30 seconds. */
     if(etimer_expired(&periodic)) {
       etimer_set(&periodic, CLOCK_SECOND * 30);
       etimer_set(&et, random_rand() % (CLOCK_SECOND * 30));
-    }
-
-    PROCESS_WAIT_EVENT();
-
-
-    if(etimer_expired(&et)) {
+    } else if(etimer_expired(&et)) {
       static rimeaddr_t oldparent;
       const rimeaddr_t *parent;
 

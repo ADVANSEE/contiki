@@ -68,8 +68,7 @@ CFLAGS += --diag_suppress=Pa050 --silent
 
 #defaults on the MSP430X core include file here (xlfn.h)
 ifndef CFLAGSNO
-CFLAGSNO = --dlib_config "$(IAR_PATH)/LIB/DLIB/dl430xlfn.h" $(CFLAGSWERROR)
-# CFLAGSNO = --dlib_config $(IAR_PATH)/LIB/DLIB/dl430xlfn.h -Ohz --multiplier=32 --multiplier_location=4C0 --hw_workaround=CPU40 --core=430X $(CFLAGSWERROR) --data_model large --double=32
+CFLAGSNO = --dlib_config "$(IAR_PATH)/lib/dlib/dl430xlfn.h" $(CFLAGSWERROR)
 endif
 
 LDFLAGSNO += -B -l contiki-$(TARGET).map -s __program_start
@@ -186,6 +185,11 @@ ifdef IAR
 else
 %.ihex: %.$(TARGET)
 	$(OBJCOPY) $^ -O ihex $@
+endif
+
+ifdef IAR
+%.d43: %.co $(PROJECT_OBJECTFILES) $(PROJECT_LIBRARIES) contiki-$(TARGET).a
+	$(LD) $(LDFLAGSNO) -Fdebug $(TARGET_STARTFILES) ${filter-out %.a,$^} ${filter %.a,$^} $(TARGET_LIBFILES) -o $@
 endif
 
 %.mspsim:	%.${TARGET}

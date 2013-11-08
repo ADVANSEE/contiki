@@ -47,7 +47,7 @@ SHELL_COMMAND(udpsend_command,
 	      &shell_udpsend_process);
 /*---------------------------------------------------------------------------*/
 
-#define MAX_SERVERLEN 16
+#define MAX_SERVERLEN 40
 
 static struct uip_udp_conn *udpconn;
 

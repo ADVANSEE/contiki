@@ -74,12 +74,12 @@
 #define PRINTF(...)
 #endif
 
-#define WITH_ACK_OPTIMIZATION         0
-#define WITH_PROBE_AFTER_RECEPTION    0
-#define WITH_PROBE_AFTER_TRANSMISSION 0
+#define WITH_ACK_OPTIMIZATION         1
+#define WITH_PROBE_AFTER_RECEPTION    1
+#define WITH_PROBE_AFTER_TRANSMISSION 1
 #define WITH_ENCOUNTER_OPTIMIZATION   0
-#define WITH_ADAPTIVE_OFF_TIME        0
-#define WITH_PENDING_BROADCAST        0
+#define WITH_ADAPTIVE_OFF_TIME        1
+#define WITH_PENDING_BROADCAST        1
 #define WITH_STREAMING                1
 
 #define LISTEN_TIME (CLOCK_SECOND / 128)
@@ -182,9 +182,37 @@ static struct ctimer stream_probe_timer, stream_off_timer;
 #define STREAM_OFF_TIME CLOCK_SECOND / 2
 #endif /* WITH_STREAMING */
 
+
+
+#ifdef LPP_CONF_ACK_WAIT_TIME
+#define ACK_WAIT_TIME LPP_CONF_ACK_WAIT_TIME
+#else /* LPP_CONF_ACK_WAIT_TIME */
+#define ACK_WAIT_TIME                      RTIMER_SECOND / 5000
+#endif /* LPP_CONF_ACK_WAIT_TIME */
+#ifdef LPP_CONF_AFTER_ACK_DETECTED_WAIT_TIME
+#define AFTER_ACK_DETECTED_WAIT_TIME LPP_CONF_AFTER_ACK_DETECTED_WAIT_TIME
+#else /* LPP_CONF_AFTER_ACK_DETECTED_WAIT_TIME */
+#define AFTER_ACK_DETECTED_WAIT_TIME       RTIMER_SECOND / 1500
+#endif /* LPP_CONF_AFTER_ACK_DETECTED_WAIT_TIME */
+
+
+#define ACK_LEN 3
+
 #ifndef MIN
 #define MIN(a, b) ((a) < (b)? (a) : (b))
 #endif /* MIN */
+
+struct seqno {
+  rimeaddr_t sender;
+  uint8_t seqno;
+};
+
+#ifdef NETSTACK_CONF_MAC_SEQNO_HISTORY
+#define MAX_SEQNOS NETSTACK_CONF_MAC_SEQNO_HISTORY
+#else /* NETSTACK_CONF_MAC_SEQNO_HISTORY */
+#define MAX_SEQNOS 16
+#endif /* NETSTACK_CONF_MAC_SEQNO_HISTORY */
+static struct seqno received_seqnos[MAX_SEQNOS];
 
 /*---------------------------------------------------------------------------*/
 static void
@@ -408,12 +436,14 @@ set_broadcast_flag(struct queue_list_item *i, uint8_t flag)
 }
 #endif /* WITH_PENDING_BROADCAST */
 /*---------------------------------------------------------------------------*/
+#if WITH_ANNOUNCEMENTS
 static void
 listen_callback(int periods)
 {
   is_listening = periods;
   turn_radio_on();
 }
+#endif /* WITH_ANNOUNCEMENTS */
 /*---------------------------------------------------------------------------*/
 /**
  * Send a probe packet.
@@ -423,7 +453,9 @@ send_probe(void)
 {
   struct lpp_hdr *hdr;
   struct announcement_msg *adata;
+#if WITH_ANNOUNCEMENTS
   struct announcement *a;
+#endif /* WITH_ANNOUNCEMENTS */
 
   /* Set up the probe header. */
   packetbuf_clear();
@@ -447,11 +479,13 @@ send_probe(void)
   adata = (struct announcement_msg *)((char *)hdr + sizeof(struct lpp_hdr));
   
   adata->num = 0;
+#if WITH_ANNOUNCEMENTS
   for(a = announcement_list(); a != NULL; a = list_item_next(a)) {
     adata->data[adata->num].id = a->id;
     adata->data[adata->num].value = a->value;
     adata->num++;
   }
+#endif /* WITH_ANNOUNCEMENTS */
 
   packetbuf_set_datalen(sizeof(struct lpp_hdr) +
 		      ANNOUNCEMENT_MSG_HEADERLEN +
@@ -520,7 +554,8 @@ dutycycle(void *ptr)
 
 #if WITH_PENDING_BROADCAST
     {
-	/* Before sending the probe, we mark all broadcast packets in
+      struct queue_list_item *p;
+      /* Before sending the probe, we mark all broadcast packets in
 	   our output queue to be pending. This means that they are
 	   ready to be sent, once we know that no neighbor is
 	   currently broadcasting. */
@@ -738,15 +773,12 @@ send_list(mac_callback_t sent, void *ptr, struct rdc_buf_list *buf_list)
 static int
 detect_ack(void)
 {
-#define INTER_PACKET_INTERVAL              RTIMER_ARCH_SECOND / 5000
-#define ACK_LEN 3
-#define AFTER_ACK_DETECTECT_WAIT_TIME      RTIMER_ARCH_SECOND / 1000
   rtimer_clock_t wt;
   uint8_t ack_received = 0;
   
   wt = RTIMER_NOW();
   leds_on(LEDS_GREEN);
-  while(RTIMER_CLOCK_LT(RTIMER_NOW(), wt + INTER_PACKET_INTERVAL)) { }
+  while(RTIMER_CLOCK_LT(RTIMER_NOW(), wt + ACK_WAIT_TIME)) { }
   leds_off(LEDS_GREEN);
   /* Check for incoming ACK. */
   if((NETSTACK_RADIO.receiving_packet() ||
@@ -756,7 +788,7 @@ detect_ack(void)
     uint8_t ackbuf[ACK_LEN + 2];
     
     wt = RTIMER_NOW();
-    while(RTIMER_CLOCK_LT(RTIMER_NOW(), wt + AFTER_ACK_DETECTECT_WAIT_TIME)) { }
+    while(RTIMER_CLOCK_LT(RTIMER_NOW(), wt + AFTER_ACK_DETECTED_WAIT_TIME)) { }
     
     len = NETSTACK_RADIO.read(ackbuf, ACK_LEN);
     if(len == ACK_LEN) {
@@ -880,7 +912,6 @@ input_packet(void)
              instead, after the appropriate time. */
           if(!rimeaddr_cmp(receiver, &rimeaddr_null)) {
 #if RDC_CONF_HARDWARE_ACK
-
             if(ret == RADIO_TX_OK) {
               remove_queued_packet(i, 1);
             } else {
@@ -997,6 +1028,33 @@ input_packet(void)
     restart_dutycycle(off_time);
 #endif /* WITH_ADAPTIVE_OFF_TIME */
 
+    /* Check for duplicate packet by comparing the sequence number
+       of the incoming packet with the last few ones we saw. */
+    {
+      int i, j;
+      for(i = 0; i < MAX_SEQNOS; ++i) {
+        if(rimeaddr_cmp(packetbuf_addr(PACKETBUF_ADDR_SENDER),
+                        &received_seqnos[i].sender)) {
+          if(packetbuf_attr(PACKETBUF_ATTR_PACKET_ID) == received_seqnos[i].seqno) {
+            /* Drop the packet. */
+            /*printf("Drop duplicate LPP layer packet %d\n",
+                   packetbuf_attr(PACKETBUF_ATTR_PACKET_ID));*/
+            return;
+          }
+          i++;
+          break;
+        }
+      }
+      /* Keep the last sequence number for each address as per 802.15.4e. */
+      for(j = i - 1; j > 0; --j) {
+        memcpy(&received_seqnos[j], &received_seqnos[j - 1],
+	       sizeof(struct seqno));
+      }
+      received_seqnos[0].seqno = packetbuf_attr(PACKETBUF_ATTR_PACKET_ID);
+      rimeaddr_copy(&received_seqnos[0].sender,
+		    packetbuf_addr(PACKETBUF_ADDR_SENDER));
+    }
+
     NETSTACK_MAC.input();
   }
 }
@@ -1033,8 +1091,10 @@ init(void)
   restart_dutycycle(random_rand() % OFF_TIME);
 
   lpp_is_on = 1;
-  
+
+#if WITH_ANNOUNCEMENTS
   announcement_register_listen_callback(listen_callback);
+#endif /* WITH_ANNOUNCEMENTS */
 
   memb_init(&queued_packets_memb);
   list_init(queued_packets_list);

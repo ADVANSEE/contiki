@@ -95,7 +95,7 @@ import se.sics.cooja.interfaces.Position;
  */
 public abstract class AbstractCompileDialog extends JDialog {
   private static final long serialVersionUID = 1L;
-  private static Logger logger = Logger.getLogger(AbstractCompileDialog.class);
+  public static Logger logger = Logger.getLogger(AbstractCompileDialog.class);
 
   protected final static Dimension LABEL_DIMENSION = new Dimension(170, 25);
 

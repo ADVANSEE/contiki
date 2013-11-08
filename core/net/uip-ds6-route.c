@@ -476,7 +476,19 @@ uip_ds6_defrt_add(uip_ipaddr_t *ipaddr, unsigned long interval)
     list_push(defaultrouterlist, d);
   }
 
-  uip_ipaddr_copy(&d->ipaddr, ipaddr);
+  if(ipaddr == NULL) {
+    /* A special case: if uip_ds6_defrt_add() is called with a NULL
+       route, this is an indication that we want to force packets to
+       go out to the fallback interface. If so, we add an unspecified
+       route to the list of default routes. uip_ds6_defrt_choose()
+       will trap this and ensure that packets go to the fallback
+       interface. */
+    uip_create_unspecified(&d->ipaddr);
+    ipaddr = &d->ipaddr;
+  } else {
+    uip_ipaddr_copy(&d->ipaddr, ipaddr);
+  }
+
   if(interval != 0) {
     stimer_set(&d->lifetime, interval);
     d->isinfinite = 0;
@@ -548,7 +560,20 @@ uip_ds6_defrt_choose(void)
   uip_ds6_defrt_t *d;
   uip_ds6_nbr_t *bestnbr;
   uip_ipaddr_t *addr;
+  uip_ipaddr_t unspec;
 
+  /* Check if we have a default route that go to the unspecified IP
+     address. This signals that we have set up a route that should
+     always go to the fallback interface. If so, we return NULL for
+     any route. */
+  uip_create_unspecified(&unspec);
+  for(d = list_head(defaultrouterlist);
+      d != NULL;
+      d = list_item_next(d)) {
+    if(uip_ipaddr_cmp(&d->ipaddr, &unspec)) {
+      return NULL;
+    }
+  }
   addr = NULL;
   for(d = list_head(defaultrouterlist);
       d != NULL;

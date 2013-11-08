@@ -83,26 +83,32 @@ flash_done(void)
 }
 /*---------------------------------------------------------------------------*/
 void
-flash_clear(unsigned short *ptr)
+flash_clear(unsigned long addr)
 {
   FCTL3 = 0xA500;               /* Lock = 0 */
   while(FCTL3 & 0x0001) nop();  /* Wait for BUSY = 0, not needed
 				   unless run from RAM */
   FCTL1 = 0xA502;               /* ERASE = 1 */
-  *ptr  = 0;                    /* erase Flash segment */
+  *((unsigned char*)addr) = 0;   /* erase Flash segment */
   FCTL1 = 0xA500;               /* ERASE = 0 automatically done?! */
   FCTL3 = 0xA510;               /* Lock = 1 */
 }
 /*---------------------------------------------------------------------------*/
 void
-flash_write(unsigned short *ptr, unsigned short word)
+flash_write(unsigned long addr, uint16_t word)
 {
   FCTL3 = 0xA500;              /* Lock = 0 */
   while(FCTL3 & 0x0001) nop(); /* Wait for BUSY = 0, not needed unless
 				  run from RAM */
   FCTL1 = 0xA540;              /* WRT = 1 */
-  *ptr  = word;                /* program Flash word */
+  *((unsigned char*)addr) = word; /* program Flash word */
   FCTL1 = 0xA500;              /* WRT = 0 */
   FCTL3 = 0xA510;              /* Lock = 1 */
+}
+/*---------------------------------------------------------------------------*/
+uint16_t
+flash_read(unsigned long addr)
+{
+  return *((unsigned char*)addr);
 }
 /*---------------------------------------------------------------------------*/

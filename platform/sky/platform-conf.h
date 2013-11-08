@@ -64,6 +64,11 @@
 #define CLIF
 
 #define HAVE_STDINT_H
+#define MSP430_MEMCPY_WORKAROUND 1
+#if defined(__MSP430__) && defined(__GNUC__) && MSP430_MEMCPY_WORKAROUND
+#else /* __GNUC__ &&  __MSP430__ && MSP430_MEMCPY_WORKAROUND */
+#define w_memcpy memcpy
+#endif /* __GNUC__ &&  __MSP430__ && MSP430_MEMCPY_WORKAROUND */
 #include "msp430def.h"
 
 

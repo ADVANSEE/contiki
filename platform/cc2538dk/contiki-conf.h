@@ -15,6 +15,10 @@
 #ifdef PROJECT_CONF_H
 #include PROJECT_CONF_H
 #endif /* PROJECT_CONF_H */
+
+#ifdef PLATFORM_CONF
+#include PLATFORM_CONF
+#endif /* PLATFORM_CONF */
 /*---------------------------------------------------------------------------*/
 /**
  * \name Compiler configuration and platform-specific type definitions
@@ -319,7 +323,7 @@ typedef uint32_t rtimer_clock_t;
 #define UIP_CONF_TCP                         1
 #endif
 #ifndef UIP_CONF_TCP_MSS
-#define UIP_CONF_TCP_MSS                    64
+#define UIP_CONF_TCP_MSS                    48
 #endif
 #define UIP_CONF_UDP                         1
 #define UIP_CONF_UDP_CHECKSUMS               1
@@ -349,7 +353,7 @@ typedef uint32_t rtimer_clock_t;
 #define NBR_TABLE_CONF_MAX_NEIGHBORS                20
 #endif
 #ifndef UIP_CONF_MAX_ROUTES
-#define UIP_CONF_MAX_ROUTES                 20
+#define UIP_CONF_MAX_ROUTES                  4
 #endif
 
 /* uIP */

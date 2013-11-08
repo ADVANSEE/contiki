@@ -124,6 +124,11 @@ init_ports(void)
   P8OUT = 0;
 #endif
 
+#ifdef P9DIR
+  P9DIR = 0;
+  P9OUT = 0;
+#endif
+
   P1IE = 0;
   P2IE = 0;
 }

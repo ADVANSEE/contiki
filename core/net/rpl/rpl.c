@@ -57,6 +57,21 @@
 rpl_stats_t rpl_stats;
 #endif
 
+static enum rpl_mode mode = RPL_MODE_MESH;
+/*---------------------------------------------------------------------------*/
+enum rpl_mode
+rpl_get_mode(void)
+{
+  return mode;
+}
+/*---------------------------------------------------------------------------*/
+enum rpl_mode
+rpl_set_mode(enum rpl_mode m)
+{
+  enum rpl_mode oldmode = mode;
+  mode = m;
+  return oldmode;
+}
 /*---------------------------------------------------------------------------*/
 void
 rpl_purge_routes(void)

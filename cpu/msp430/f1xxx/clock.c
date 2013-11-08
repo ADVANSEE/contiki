@@ -161,7 +161,7 @@ clock_init(void)
   TACCR1 = INTERVAL;
 
   /* Start Timer_A in continuous mode. */
-  TACTL |= MC1;
+  TACTL |= MC_2;
 
   count = 0;
 

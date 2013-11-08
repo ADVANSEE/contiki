@@ -237,6 +237,10 @@
 
 #define UIP_CONF_TCP_SPLIT       0
 
+#ifdef PLATFORM_CONF
+#include PLATFORM_CONF
+#endif /* PLATFORM_CONF */
+
 /* include the project config */
 /* PROJECT_CONF_H might be defined in the project Makefile */
 #ifdef PROJECT_CONF_H

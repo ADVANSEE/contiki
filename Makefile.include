@@ -57,7 +57,7 @@ CFLAGS += -DCONTIKI=1 -DCONTIKI_TARGET_$(TARGET_UPPERCASE)=1
 include $(CONTIKI)/core/net/rime/Makefile.rime
 include $(CONTIKI)/core/net/mac/Makefile.mac
 SYSTEM  = process.c procinit.c autostart.c elfloader.c profile.c \
-          timetable.c timetable-aggregate.c compower.c serial-line.c
+          compower.c serial-line.c
 THREADS = mt.c
 LIBS    = memb.c mmem.c timer.c list.c etimer.c ctimer.c energest.c rtimer.c stimer.c trickle-timer.c \
           print-stats.c ifft.c crc16.c random.c checkpoint.c ringbuf.c settings.c
@@ -265,6 +265,8 @@ endif
 # Don't treat %.$(TARGET) as an intermediate file because it is
 # in fact the primary target.
 .PRECIOUS: %.$(TARGET)
+
+.DELETE_ON_ERROR: $@
 
 # Cancel the predefined implict rule for compiling and linking
 # a single C source into a binary to force GNU make to consider

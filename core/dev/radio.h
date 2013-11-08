@@ -88,6 +88,9 @@ struct radio_driver {
 
   /** Turn the radio off. */
   int (* off)(void);
+
+  /** Set the radio to deep sleep mode. */
+  int (* sleep)(void);
 };
 
 /* Generic radio return values. */

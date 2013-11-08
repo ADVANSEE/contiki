@@ -213,6 +213,7 @@ packet_sent(void *ptr, int status, int num_transmissions)
     break;
   }
 
+  /* Find out what packet this callback refers to */
   for(q = list_head(n->queued_packet_list);
       q != NULL; q = list_item_next(q)) {
     if(queuebuf_attr(q->buf, PACKETBUF_ATTR_MAC_SEQNO) ==

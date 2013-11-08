@@ -34,6 +34,7 @@
  */
 
 #include <string.h>
+#include <stdio.h>
 
 #include "contiki.h"
 
@@ -61,7 +62,7 @@
 #endif /* CC2420_CONF_CHECKSUM */
 
 #ifndef CC2420_CONF_AUTOACK
-#define CC2420_CONF_AUTOACK 0
+#define CC2420_CONF_AUTOACK 1
 #endif /* CC2420_CONF_AUTOACK */
 
 #if CC2420_CONF_CHECKSUM
@@ -105,6 +106,8 @@ int cc2420_authority_level_of_sender;
 
 int cc2420_packets_seen, cc2420_packets_read;
 
+static uint16_t pan, addr;
+
 static uint8_t volatile pending;
 
 #define BUSYWAIT_UNTIL(cond, max_time)                                  \
@@ -141,6 +144,8 @@ static int cc2420_cca(void);
 signed char cc2420_last_rssi;
 uint8_t cc2420_last_correlation;
 
+static int deep_sleep(void);
+
 const struct radio_driver cc2420_driver =
   {
     cc2420_init,
@@ -155,6 +160,7 @@ const struct radio_driver cc2420_driver =
     pending_packet,
     cc2420_on,
     cc2420_off,
+    deep_sleep
   };
 
 static uint8_t receive_on;
@@ -197,11 +203,96 @@ status(void)
   return status;
 }
 /*---------------------------------------------------------------------------*/
-static uint8_t locked, lock_on, lock_off;
+#define AUTOACK (1 << 4)
+#define ADR_DECODE (1 << 11)
+#define RXFIFO_PROTECTION (1 << 9)
+#define CORR_THR(n) (((n) & 0x1f) << 6)
+#define FIFOP_THR(n) ((n) & 0x7f)
+#define RXBPF_LOCUR (1 << 13);
+/*---------------------------------------------------------------------------*/
+static unsigned
+getreg(enum cc2420_register regname)
+{
+  unsigned reg;
+  CC2420_READ_REG(regname, reg);
+  return reg;
+}
+/*---------------------------------------------------------------------------*/
+static void
+setreg(enum cc2420_register regname, unsigned value)
+{
+  CC2420_WRITE_REG(regname, value);
+}
+/*---------------------------------------------------------------------------*/
+static void
+powerup(void)
+{
+  /* Turn on the crystal oscillator. */
+  strobe(CC2420_SXOSCON);
+}
+
+static void
+configure(void)
+{
+  uint16_t reg;
+  BUSYWAIT_UNTIL(status() & (BV(CC2420_XOSC16M_STABLE)), RTIMER_SECOND / 100);
+
+  /* Turn on/off automatic packet acknowledgment and address decoding. */
+  reg = getreg(CC2420_MDMCTRL0);
+
+#if CC2420_CONF_AUTOACK
+  reg |= AUTOACK | ADR_DECODE;
+#else
+  reg &= ~(AUTOACK | ADR_DECODE);
+#endif /* CC2420_CONF_AUTOACK */
+  setreg(CC2420_MDMCTRL0, reg);
+
+  /* Set transmission turnaround time to the lower setting (8 symbols
+     = 0.128 ms) instead of the default (12 symbols = 0.192 ms). */
+  /*  reg = getreg(CC2420_TXCTRL);
+  reg &= ~(1 << 13);
+  setreg(CC2420_TXCTRL, reg);*/
+
+  /* Change default values as recomended in the data sheet, */
+  /* correlation threshold = 20, RX bandpass filter = 1.3uA. */
+  setreg(CC2420_MDMCTRL1, CORR_THR(20));
+  reg = getreg(CC2420_RXCTRL1);
+  reg |= RXBPF_LOCUR;
+  setreg(CC2420_RXCTRL1, reg);
+
+  /* Set the FIFOP threshold to maximum. */
+  setreg(CC2420_IOCFG0, FIFOP_THR(127));
+
+  /* Turn off "Security enable" (page 32). */
+  reg = getreg(CC2420_SECCTRL0);
+  reg &= ~RXFIFO_PROTECTION;
+  setreg(CC2420_SECCTRL0, reg);
+
+  cc2420_set_pan_addr(pan, addr, NULL);
+  cc2420_set_channel(channel);
+
+  flushrx();
+
+}
+/*---------------------------------------------------------------------------*/
+static uint8_t locked, lock_on, lock_off, completely_off;
+
+static int
+deep_sleep(void)
+{
+  strobe(CC2420_SXOSCOFF);
+  completely_off = 1;
+  return 1;
+}
 
 static void
 on(void)
 {
+  if(completely_off) {
+    completely_off = 0;
+    powerup();
+    configure();
+  }
   CC2420_ENABLE_FIFOP_INT();
   strobe(CC2420_SRXON);
 
@@ -243,20 +334,6 @@ static void RELEASE_LOCK(void) {
   locked--;
 }
 /*---------------------------------------------------------------------------*/
-static unsigned
-getreg(enum cc2420_register regname)
-{
-  unsigned reg;
-  CC2420_READ_REG(regname, reg);
-  return reg;
-}
-/*---------------------------------------------------------------------------*/
-static void
-setreg(enum cc2420_register regname, unsigned value)
-{
-  CC2420_WRITE_REG(regname, value);
-}
-/*---------------------------------------------------------------------------*/
 static void
 set_txpower(uint8_t power)
 {
@@ -266,13 +343,6 @@ set_txpower(uint8_t power)
   reg = (reg & 0xffe0) | (power & 0x1f);
   setreg(CC2420_TXCTRL, reg);
 }
-/*---------------------------------------------------------------------------*/
-#define AUTOACK (1 << 4)
-#define ADR_DECODE (1 << 11)
-#define RXFIFO_PROTECTION (1 << 9)
-#define CORR_THR(n) (((n) & 0x1f) << 6)
-#define FIFOP_THR(n) ((n) & 0x7f)
-#define RXBPF_LOCUR (1 << 13);
 /*---------------------------------------------------------------------------*/
 int
 cc2420_init(void)
@@ -288,51 +358,19 @@ cc2420_init(void)
 
   /* Turn on voltage regulator and reset. */
   SET_VREG_ACTIVE();
-  clock_delay(250);
+  BUSYWAIT_UNTIL(0, RTIMER_SECOND / 100);
   SET_RESET_ACTIVE();
-  clock_delay(127);
+  BUSYWAIT_UNTIL(0, RTIMER_SECOND / 100);
   SET_RESET_INACTIVE();
-  clock_delay(125);
+  BUSYWAIT_UNTIL(0, RTIMER_SECOND / 100);
 
-
-  /* Turn on the crystal oscillator. */
-  strobe(CC2420_SXOSCON);
-
-  /* Turn on/off automatic packet acknowledgment and address decoding. */
-  reg = getreg(CC2420_MDMCTRL0);
-
-#if CC2420_CONF_AUTOACK
-  reg |= AUTOACK | ADR_DECODE;
-#else
-  reg &= ~(AUTOACK | ADR_DECODE);
-#endif /* CC2420_CONF_AUTOACK */
-  setreg(CC2420_MDMCTRL0, reg);
-
-  /* Set transmission turnaround time to the lower setting (8 symbols
-     = 0.128 ms) instead of the default (12 symbols = 0.192 ms). */
-  /*  reg = getreg(CC2420_TXCTRL);
-  reg &= ~(1 << 13);
-  setreg(CC2420_TXCTRL, reg);*/
-
+  pan = 0xffff;
+  addr = 0x0000;
   
-  /* Change default values as recomended in the data sheet, */
-  /* correlation threshold = 20, RX bandpass filter = 1.3uA. */
-  setreg(CC2420_MDMCTRL1, CORR_THR(20));
-  reg = getreg(CC2420_RXCTRL1);
-  reg |= RXBPF_LOCUR;
-  setreg(CC2420_RXCTRL1, reg);
+  BUSYWAIT_UNTIL(0, RTIMER_SECOND / 100);
 
-  /* Set the FIFOP threshold to maximum. */
-  setreg(CC2420_IOCFG0, FIFOP_THR(127));
-
-  /* Turn off "Security enable" (page 32). */
-  reg = getreg(CC2420_SECCTRL0);
-  reg &= ~RXFIFO_PROTECTION;
-  setreg(CC2420_SECCTRL0, reg);
-
-  cc2420_set_pan_addr(0xffff, 0x0000, NULL);
-  cc2420_set_channel(26);
-
+  powerup();
+  configure();
   flushrx();
 
   process_start(&cc2420_process, NULL);
@@ -459,6 +497,12 @@ cc2420_prepare(const void *payload, unsigned short payload_len)
   /* Wait for any previous transmission to finish. */
   /*  while(status() & BV(CC2420_TX_ACTIVE));*/
 
+  if(completely_off) {
+    completely_off = 0;
+    powerup();
+    configure();
+  }
+
   /* Write packet to TX FIFO. */
   strobe(CC2420_SFLUSHTX);
 
@@ -570,15 +614,17 @@ cc2420_set_channel(int c)
 }
 /*---------------------------------------------------------------------------*/
 void
-cc2420_set_pan_addr(unsigned pan,
-                    unsigned addr,
+cc2420_set_pan_addr(uint16_t newpan,
+                    uint16_t newaddr,
                     const uint8_t *ieee_addr)
 {
   uint16_t f = 0;
   uint8_t tmp[2];
 
   GET_LOCK();
-  
+
+  pan = newpan;
+  addr = newaddr;
   /*
    * Writing RAM requires crystal oscillator to be stable.
    */

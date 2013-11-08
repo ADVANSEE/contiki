@@ -1431,7 +1431,8 @@ uip_process(uint8_t flag)
       uip_icmp6_echo_request_input();
       break;
     case ICMP6_ECHO_REPLY:
-      /** \note We don't implement any application callback for now */
+      /** Call echo reply input function. */
+      uip_icmp6_echo_reply_input();
       PRINTF("Received an icmp6 echo reply\n");
       UIP_STAT(++uip_stat.icmp.recv);
       uip_len = 0;
@@ -2315,12 +2316,23 @@ uip_send(const void *data, int len)
 {
   int copylen;
 #define MIN(a,b) ((a) < (b)? (a): (b))
-  copylen = MIN(len, UIP_BUFSIZE - UIP_LLH_LEN - UIP_TCPIP_HLEN -
-                (int)((char *)uip_sappdata - (char *)&uip_buf[UIP_LLH_LEN + UIP_TCPIP_HLEN]));
+
+  if(uip_sappdata != NULL) {
+    copylen = MIN(len, UIP_BUFSIZE - UIP_LLH_LEN - UIP_TCPIP_HLEN -
+                  (int)((char *)uip_sappdata -
+                        (char *)&uip_buf[UIP_LLH_LEN + UIP_TCPIP_HLEN]));
+  } else {
+    copylen = MIN(len, UIP_BUFSIZE - UIP_LLH_LEN - UIP_TCPIP_HLEN);
+  }
   if(copylen > 0) {
     uip_slen = copylen;
     if(data != uip_sappdata) {
-      memcpy(uip_sappdata, (data), uip_slen);
+      if(uip_sappdata == NULL) {
+        memcpy((char *)&uip_buf[UIP_LLH_LEN + UIP_TCPIP_HLEN],
+               (data), uip_slen);
+      } else {
+        memcpy(uip_sappdata, (data), uip_slen);
+      }
     }
   }
 }

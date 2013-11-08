@@ -55,10 +55,12 @@ endif
 
 CONTIKI_TARGET_SOURCEFILES += $(ARCH) $(UIPDRIVERS)
 
+ifndef MCU
 ifdef IAR
 MCU=msp430f5438a
 else
 MCU=msp430f5438
+endif
 endif
 include $(CONTIKI)/cpu/msp430/Makefile.msp430
 
@@ -75,7 +77,26 @@ endif
 	mv $< $@
 
 %.upload: %.hex
-	msp430flasher -n msp430x5438a -e ERASE_MAIN -w $< -v -z [VCC]
+	msp430flasher -s -n msp430x5438a -e ERASE_MAIN -w $< -v -z [VCC]
 
 %.upload-clean: %.hex
-	msp430flasher -n msp430x5438a -w $< -v -z [VCC]
+	msp430flasher -s -n msp430x5438a -w $< -v -z [VCC]
+
+# Serialdump rules
+ifeq ($(HOST_OS),Windows)
+  SERIALDUMP = serialdump-windows
+  
+  CYGWIN_DEV_ID="MSP-EXP430F5438 USB - Serial Port"
+  include $(CONTIKI)/tools/cygwin/Makefile.cygwin
+endif
+ifeq ($(HOST_OS),Darwin)
+  SERIALDUMP = serialdump-macos
+endif
+ifndef SERIALDUMP
+  # Assume Linux
+  SERIALDUMP = serialdump-linux
+endif
+
+login:
+	@echo "Connecting to $(COMPORT)"
+	$(CONTIKI)/tools/sky/$(SERIALDUMP) -b115200 $(COMPORT)

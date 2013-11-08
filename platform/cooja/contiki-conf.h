@@ -237,6 +237,9 @@ typedef unsigned long rtimer_clock_t;
 
 #define CFS_CONF_OFFSET_TYPE	long
 
+#define MULTICHAN_CONF_SET_CHANNEL(x) radio_set_channel(x)
+#define MULTICHAN_CONF_READ_RSSI(x) 0
+
 /* include the project config */
 /* PROJECT_CONF_H might be defined in the project Makefile */
 #ifdef PROJECT_CONF_H

@@ -53,9 +53,9 @@ int cc2420_init(void);
 int cc2420_set_channel(int channel);
 int cc2420_get_channel(void);
 
-void cc2420_set_pan_addr(unsigned pan,
-                                unsigned addr,
-                                const uint8_t *ieee_addr);
+void cc2420_set_pan_addr(uint16_t pan,
+			 uint16_t addr,
+			 const uint8_t *ieee_addr);
 
 extern signed char cc2420_last_rssi;
 extern uint8_t cc2420_last_correlation;
