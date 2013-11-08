@@ -314,20 +314,24 @@ packet_input(void)
 #if NULLRDC_802154_AUTOACK || NULLRDC_802154_AUTOACK_HW
     /* Check for duplicate packet by comparing the sequence number
        of the incoming packet with the last few ones we saw. */
-    int i;
+    int i, j;
     for(i = 0; i < MAX_SEQNOS; ++i) {
-      if(packetbuf_attr(PACKETBUF_ATTR_PACKET_ID) == received_seqnos[i].seqno &&
-         rimeaddr_cmp(packetbuf_addr(PACKETBUF_ADDR_SENDER),
+      if(rimeaddr_cmp(packetbuf_addr(PACKETBUF_ADDR_SENDER),
                       &received_seqnos[i].sender)) {
-        /* Drop the packet. */
-        PRINTF("nullrdc: drop duplicate link layer packet %u\n",
-               packetbuf_attr(PACKETBUF_ATTR_PACKET_ID));
-        duplicate = 1;
+        if(packetbuf_attr(PACKETBUF_ATTR_PACKET_ID) == received_seqnos[i].seqno) {
+          /* Drop the packet. */
+          PRINTF("nullrdc: drop duplicate link layer packet %u\n",
+                 packetbuf_attr(PACKETBUF_ATTR_PACKET_ID));
+          duplicate = 1;
+        }
+        i++;
+        break;
       }
     }
     if(!duplicate) {
-      for(i = MAX_SEQNOS - 1; i > 0; --i) {
-        memcpy(&received_seqnos[i], &received_seqnos[i - 1],
+      /* Keep the last sequence number for each address as per 802.15.4e. */
+      for(j = i - 1; j > 0; --j) {
+        memcpy(&received_seqnos[j], &received_seqnos[j - 1],
                sizeof(struct seqno));
       }
       received_seqnos[0].seqno = packetbuf_attr(PACKETBUF_ATTR_PACKET_ID);
