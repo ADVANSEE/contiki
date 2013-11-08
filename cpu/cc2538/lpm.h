@@ -101,6 +101,7 @@ void lpm_init(void);
  * This PM selection heuristic has the following primary criteria:
  * - Is the RF off?
  * - Is the USB PLL off?
+ * - Is the UART TX off?
  * - Is the Sleep Timer scheduled to fire an interrupt?
  *
  * If the answer to any of those questions is no, we will drop to PM0 and

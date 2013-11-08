@@ -61,6 +61,33 @@
 #endif
 /** @} */
 /*---------------------------------------------------------------------------*/
+/** \name UART register selections based on selected UART base address
+ *
+ * Once we know what UART we're on, configure correct values to be written to
+ * the correct registers
+ * @{
+ */
+#if UART_BASE==UART_1_BASE
+/* Running, in sleep, in deep sleep, enable the clock for the correct UART */
+#define SYS_CTRL_RCGCUART_UART SYS_CTRL_RCGCUART_UART1
+#define SYS_CTRL_SCGCUART_UART SYS_CTRL_SCGCUART_UART1
+#define SYS_CTRL_DCGCUART_UART SYS_CTRL_DCGCUART_UART1
+
+#define NVIC_INT_UART          NVIC_INT_UART1
+#define IOC_PXX_SEL_UART_TXD   IOC_PXX_SEL_UART1_TXD
+#define IOC_UARTRXD_UART       IOC_UARTRXD_UART1
+#else /* Defaults for UART0 */
+#define SYS_CTRL_RCGCUART_UART SYS_CTRL_RCGCUART_UART0
+#define SYS_CTRL_SCGCUART_UART SYS_CTRL_SCGCUART_UART0
+#define SYS_CTRL_DCGCUART_UART SYS_CTRL_DCGCUART_UART0
+
+#define NVIC_INT_UART          NVIC_INT_UART0
+
+#define IOC_PXX_SEL_UART_TXD   IOC_PXX_SEL_UART0_TXD
+#define IOC_UARTRXD_UART       IOC_UARTRXD_UART0
+#endif
+/** @} */
+/*---------------------------------------------------------------------------*/
 /**
  * \name Baud rate defines
  *
