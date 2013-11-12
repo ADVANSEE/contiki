@@ -67,6 +67,7 @@ PROCESS_THREAD(ccm_test_process, ev, data)
 {
   static const char *const str_res[] = {
     "success",
+    "resource in use",
     "keystore read error",
     "keystore write error",
     "DMA bus error",
@@ -280,18 +281,17 @@ PROCESS_THREAD(ccm_test_process, ev, data)
       ret = ccm_auth_encrypt_start(vectors[i].len_len, vectors[i].key_area,
                                    vectors[i].nonce, vectors[i].adata,
                                    vectors[i].adata_len, vectors[i].mdata,
-                                   vectors[i].mdata_len, vectors[i].mic_len);
+                                   vectors[i].mdata_len, vectors[i].mic_len,
+                                   &ccm_test_process);
       time = RTIMER_NOW() - time;
       printf("ccm_auth_encrypt_start(): %s, %lu us\n", str_res[ret],
              (uint32_t)((uint64_t)time * 1000000 / RTIMER_SECOND));
-      PROCESS_PAUSE();
       if(ret != AES_SUCCESS) {
+        PROCESS_PAUSE();
         continue;
       }
 
-      while(!ccm_auth_encrypt_check_status()) {
-        PROCESS_PAUSE();
-      }
+      PROCESS_WAIT_EVENT_UNTIL(ccm_auth_encrypt_check_status());
 
       time = RTIMER_NOW();
       ret = ccm_auth_encrypt_get_result(vectors[i].mic, vectors[i].mic_len);
@@ -320,18 +320,17 @@ PROCESS_THREAD(ccm_test_process, ev, data)
       ret = ccm_auth_decrypt_start(vectors[i].len_len, vectors[i].key_area,
                                    vectors[i].nonce, vectors[i].adata,
                                    vectors[i].adata_len, vectors[i].mdata,
-                                   vectors[i].mdata_len, vectors[i].mic_len);
+                                   vectors[i].mdata_len, vectors[i].mic_len,
+                                   &ccm_test_process);
       time = RTIMER_NOW() - time;
       printf("ccm_auth_decrypt_start(): %s, %lu us\n", str_res[ret],
              (uint32_t)((uint64_t)time * 1000000 / RTIMER_SECOND));
-      PROCESS_PAUSE();
       if(ret != AES_SUCCESS) {
+        PROCESS_PAUSE();
         continue;
       }
 
-      while(!ccm_auth_decrypt_check_status()) {
-        PROCESS_PAUSE();
-      }
+      PROCESS_WAIT_EVENT_UNTIL(ccm_auth_decrypt_check_status());
 
       time = RTIMER_NOW();
       ret = ccm_auth_decrypt_get_result(vectors[i].mdata, vectors[i].mdata_len,
