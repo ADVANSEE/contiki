@@ -67,6 +67,7 @@ PROCESS_THREAD(ccm_test_process, ev, data)
 {
   static const char *const str_res[] = {
     "success",
+    "resource in use",
     "keystore read error",
     "keystore write error",
     "DMA bus error",
@@ -271,25 +272,26 @@ PROCESS_THREAD(ccm_test_process, ev, data)
     printf("aes_load_key(): %s, %lu us\n", str_res[ret],
            (uint32_t)((uint64_t)time * 1000000 / RTIMER_SECOND));
     PROCESS_PAUSE();
-    if(ret != AES_SUCCESS)
+    if(ret != AES_SUCCESS) {
       continue;
+    }
 
     if(vectors[i].encrypt) {
       time = RTIMER_NOW();
       ret = ccm_auth_encrypt_start(vectors[i].len_len, vectors[i].key_area,
                                    vectors[i].nonce, vectors[i].adata,
                                    vectors[i].adata_len, vectors[i].mdata,
-                                   vectors[i].mdata_len, vectors[i].mic_len);
+                                   vectors[i].mdata_len, vectors[i].mic_len,
+                                   &ccm_test_process);
       time = RTIMER_NOW() - time;
       printf("ccm_auth_encrypt_start(): %s, %lu us\n", str_res[ret],
              (uint32_t)((uint64_t)time * 1000000 / RTIMER_SECOND));
-      PROCESS_PAUSE();
-      if(ret != AES_SUCCESS)
-        continue;
-
-      while(!ccm_auth_encrypt_check_status()) {
+      if(ret != AES_SUCCESS) {
         PROCESS_PAUSE();
+        continue;
       }
+
+      PROCESS_WAIT_EVENT_UNTIL(ccm_auth_encrypt_check_status());
 
       time = RTIMER_NOW();
       ret = ccm_auth_encrypt_get_result(vectors[i].mic, vectors[i].mic_len);
@@ -297,8 +299,9 @@ PROCESS_THREAD(ccm_test_process, ev, data)
       printf("ccm_auth_encrypt_get_result(): %s, %lu us\n", str_res[ret],
              (uint32_t)((uint64_t)time * 1000000 / RTIMER_SECOND));
       PROCESS_PAUSE();
-      if(ret != AES_SUCCESS)
+      if(ret != AES_SUCCESS) {
         continue;
+      }
 
       if(memcmp(vectors[i].mdata, vectors[i].expected, vectors[i].mdata_len)) {
         puts("Encrypted message does not match expected one");
@@ -317,17 +320,17 @@ PROCESS_THREAD(ccm_test_process, ev, data)
       ret = ccm_auth_decrypt_start(vectors[i].len_len, vectors[i].key_area,
                                    vectors[i].nonce, vectors[i].adata,
                                    vectors[i].adata_len, vectors[i].mdata,
-                                   vectors[i].mdata_len, vectors[i].mic_len);
+                                   vectors[i].mdata_len, vectors[i].mic_len,
+                                   &ccm_test_process);
       time = RTIMER_NOW() - time;
       printf("ccm_auth_decrypt_start(): %s, %lu us\n", str_res[ret],
              (uint32_t)((uint64_t)time * 1000000 / RTIMER_SECOND));
-      PROCESS_PAUSE();
-      if(ret != AES_SUCCESS)
-        continue;
-
-      while(!ccm_auth_decrypt_check_status()) {
+      if(ret != AES_SUCCESS) {
         PROCESS_PAUSE();
+        continue;
       }
+
+      PROCESS_WAIT_EVENT_UNTIL(ccm_auth_decrypt_check_status());
 
       time = RTIMER_NOW();
       ret = ccm_auth_decrypt_get_result(vectors[i].mdata, vectors[i].mdata_len,
@@ -336,8 +339,9 @@ PROCESS_THREAD(ccm_test_process, ev, data)
       printf("ccm_auth_decrypt_get_result(): %s, %lu us\n", str_res[ret],
              (uint32_t)((uint64_t)time * 1000000 / RTIMER_SECOND));
       PROCESS_PAUSE();
-      if(ret != AES_SUCCESS)
+      if(ret != AES_SUCCESS) {
         continue;
+      }
 
       if(memcmp(vectors[i].mdata, vectors[i].expected,
                 vectors[i].mdata_len - vectors[i].mic_len)) {

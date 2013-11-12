@@ -67,6 +67,7 @@ PROCESS_THREAD(sha256_test_process, ev, data)
 {
   static const char *const str_res[] = {
     "success",
+    "resource in use",
     "keystore read error",
     "keystore write error",
     "DMA bus error",
@@ -206,8 +207,9 @@ PROCESS_THREAD(sha256_test_process, ev, data)
     printf("sha256_init(): %s, %lu us\n", str_res[ret],
            (uint32_t)((uint64_t)time * 1000000 / RTIMER_SECOND));
     PROCESS_PAUSE();
-    if(ret != SHA256_SUCCESS)
+    if(ret != SHA256_SUCCESS) {
       continue;
+    }
 
     for(j = 0; j < sizeof(vectors[i].data) / sizeof(vectors[i].data[0]) &&
                vectors[i].data[j] != NULL; j++) {
@@ -220,11 +222,13 @@ PROCESS_THREAD(sha256_test_process, ev, data)
       printf("sha256_process(): %s, %lu us\n", str_res[ret],
              (uint32_t)((uint64_t)time * 1000000 / RTIMER_SECOND));
       PROCESS_PAUSE();
-      if(ret != SHA256_SUCCESS)
+      if(ret != SHA256_SUCCESS) {
         break;
+      }
     }
-    if(ret != SHA256_SUCCESS)
+    if(ret != SHA256_SUCCESS) {
       continue;
+    }
 
     time = RTIMER_NOW();
     ret = sha256_done(&state, sha256);
@@ -233,8 +237,9 @@ PROCESS_THREAD(sha256_test_process, ev, data)
     printf("sha256_done(): %s, %lu us\n", str_res[ret],
            (uint32_t)((uint64_t)time * 1000000 / RTIMER_SECOND));
     PROCESS_PAUSE();
-    if(ret != SHA256_SUCCESS)
+    if(ret != SHA256_SUCCESS) {
       continue;
+    }
 
     if(memcmp(sha256, vectors[i].sha256, sizeof(sha256))) {
       puts("Computed SHA-256 hash does not match expected hash");
