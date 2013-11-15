@@ -64,6 +64,18 @@ static uint8_t *packetbuf = (uint8_t *)packetbuf_aligned;
 
 static uint8_t *packetbufptr;
 
+struct seqno {
+  rimeaddr_t sender;
+  uint8_t seqno;
+};
+
+#ifdef NETSTACK_CONF_MAC_SEQNO_HISTORY
+#define MAX_SEQNOS NETSTACK_CONF_MAC_SEQNO_HISTORY
+#else /* NETSTACK_CONF_MAC_SEQNO_HISTORY */
+#define MAX_SEQNOS 16
+#endif /* NETSTACK_CONF_MAC_SEQNO_HISTORY */
+static struct seqno received_seqnos[MAX_SEQNOS];
+
 #define DEBUG 0
 #if DEBUG
 #include <stdio.h>
@@ -194,6 +206,33 @@ packetbuf_hdrreduce(int size)
   bufptr += size;
   buflen -= size;
   return 1;
+}
+/*---------------------------------------------------------------------------*/
+int
+packetbuf_is_duplicate(void)
+{
+  int i;
+
+  /*
+   * Check for duplicate packet by comparing the sequence number of the incoming
+   * packet with the last few ones we saw.
+   */
+  for(i = 0; i < MAX_SEQNOS; ++i) {
+    if(packetbuf_attr(PACKETBUF_ATTR_PACKET_ID) == received_seqnos[i].seqno &&
+       rimeaddr_cmp(packetbuf_addr(PACKETBUF_ADDR_SENDER),
+                    &received_seqnos[i].sender)) {
+      /* Duplicate packet. */
+      return 1;
+    }
+  }
+
+  for(i = MAX_SEQNOS - 1; i > 0; --i) {
+    memcpy(&received_seqnos[i], &received_seqnos[i - 1], sizeof(struct seqno));
+  }
+  received_seqnos[0].seqno = packetbuf_attr(PACKETBUF_ATTR_PACKET_ID);
+  rimeaddr_copy(&received_seqnos[0].sender,
+                packetbuf_addr(PACKETBUF_ADDR_SENDER));
+  return 0;
 }
 /*---------------------------------------------------------------------------*/
 void
