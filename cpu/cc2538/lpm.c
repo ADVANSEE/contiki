@@ -41,12 +41,12 @@
 #include "dev/sys-ctrl.h"
 #include "dev/scb.h"
 #include "dev/rfcore-xreg.h"
-#include "dev/usb-regs.h"
-#include "dev/uart.h"
 #include "dev/crypto.h"
 #include "rtimer-arch.h"
+#include "lpm.h"
 #include "reg.h"
 
+#include <stdbool.h>
 #include <stdint.h>
 #include <string.h>
 /*---------------------------------------------------------------------------*/
@@ -98,6 +98,30 @@ void clock_adjust(clock_time_t ticks);
 /*---------------------------------------------------------------------------*/
 /* Stores the currently specified MAX allowed PM */
 static uint8_t max_pm;
+/*---------------------------------------------------------------------------*/
+/* Buffer to store peripheral PM1+ permission FPs */
+#ifdef LPM_CONF_PERIPH_PERMIT_PM1_FUNCS_MAX
+#define LPM_PERIPH_PERMIT_PM1_FUNCS_MAX LPM_CONF_PERIPH_PERMIT_PM1_FUNCS_MAX
+#else
+#define LPM_PERIPH_PERMIT_PM1_FUNCS_MAX 2
+#endif
+
+lpm_periph_permit_pm1_func_t
+periph_permit_pm1_funcs[LPM_PERIPH_PERMIT_PM1_FUNCS_MAX];
+/*---------------------------------------------------------------------------*/
+static bool
+periph_permit_pm1(void)
+{
+  int i;
+
+  for(i = 0; i < LPM_PERIPH_PERMIT_PM1_FUNCS_MAX &&
+      periph_permit_pm1_funcs[i] != NULL; i++) {
+    if(!periph_permit_pm1_funcs[i]()) {
+      return false;
+    }
+  }
+  return true;
+}
 /*---------------------------------------------------------------------------*/
 /*
  * Routine to put is in PM0. We also need to do some housekeeping if the stats
@@ -193,18 +217,12 @@ lpm_enter()
   rtimer_clock_t duration;
 
   /*
-   * If either the RF, the USB, the UART TX or the AES is on, dropping to PM1/2
-   * would equal pulling the rug (32MHz XOSC) from under their feet. Thus, we
-   * only drop to PM0. PM0 is also used if max_pm==0.
-   *
-   * Note: USB Suspend/Resume/Remote Wake-Up are not supported. Once the PLL is
-   * on, it stays on.
+   * If either the RF, the AES or the registered peripherals are on, dropping to
+   * PM1/2 would equal pulling the rug (32MHz XOSC) from under their feet. Thus,
+   * we only drop to PM0. PM0 is also used if max_pm==0.
    */
   if((REG(RFCORE_XREG_FSMSTAT0) & RFCORE_XREG_FSMSTAT0_FSM_FFCTRL_STATE) != 0
-     || REG(USB_CTRL) != 0
-     || ((REG(SYS_CTRL_RCGCUART) & SYS_CTRL_RCGCUART_UART) != 0
-         && (REG(UART_BASE | UART_FR) & UART_FR_TXFE) == 0)
-     || REG(AES_CTRL_ALG_SEL) != 0 || max_pm == 0) {
+     || REG(AES_CTRL_ALG_SEL) != 0 || !periph_permit_pm1() || max_pm == 0) {
     enter_pm0();
 
     /* We reach here when the interrupt context that woke us up has returned */
@@ -212,7 +230,7 @@ lpm_enter()
   }
 
   /*
-   * AES was off. UART TX was off. USB PLL was off. Radio was off: Some Duty
+   * AES was off. Registered peripherals were off. Radio was off: Some Duty
    * Cycling in place.
    * rtimers run on the Sleep Timer. Thus, if we have a scheduled rtimer
    * task, a Sleep Timer interrupt will fire and will wake us up.
@@ -230,8 +248,8 @@ lpm_enter()
   }
 
   /* If we reach here, we -may- (but may as well not) be dropping to PM1+. We
-   * know the AES, UART TX, USB and RF are off so we can switch to the 16MHz
-   * RCOSC. */
+   * know the registered peripherals, AES and RF are off so we can switch to the
+   * 16MHz RCOSC. */
   select_16_mhz_rcosc();
 
   /*
@@ -303,6 +321,21 @@ void
 lpm_set_max_pm(uint8_t pm)
 {
   max_pm = pm > LPM_CONF_MAX_PM ? LPM_CONF_MAX_PM : pm;
+}
+/*---------------------------------------------------------------------------*/
+void
+lpm_register_peripheral(lpm_periph_permit_pm1_func_t permit_pm1_func)
+{
+  int i;
+
+  for(i = 0; i < LPM_PERIPH_PERMIT_PM1_FUNCS_MAX; i++) {
+    if(periph_permit_pm1_funcs[i] == permit_pm1_func) {
+      break;
+    } else if(periph_permit_pm1_funcs[i] == NULL) {
+      periph_permit_pm1_funcs[i] = permit_pm1_func;
+      break;
+    }
+  }
 }
 /*---------------------------------------------------------------------------*/
 void
