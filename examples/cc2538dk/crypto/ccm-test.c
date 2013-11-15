@@ -247,8 +247,7 @@ PROCESS_THREAD(ccm_test_process, ev, data)
   };
   static int i;
   static uint8_t ret;
-  static rtimer_clock_t total_time;
-  rtimer_clock_t time;
+  static rtimer_clock_t time, time2, total_time;
 
   PROCESS_BEGIN();
 
@@ -266,9 +265,9 @@ PROCESS_THREAD(ccm_test_process, ev, data)
            vectors[i].adata_len, vectors[i].mdata_len, vectors[i].mic_len);
 
     time = RTIMER_NOW();
-    total_time = time;
     ret = aes_load_key(vectors[i].key, vectors[i].key_area);
     time = RTIMER_NOW() - time;
+    total_time = time;
     printf("aes_load_key(): %s, %lu us\n", str_res[ret],
            (uint32_t)((uint64_t)time * 1000000 / RTIMER_SECOND));
     PROCESS_PAUSE();
@@ -276,26 +275,34 @@ PROCESS_THREAD(ccm_test_process, ev, data)
       continue;
     }
 
+    time = RTIMER_NOW();
     if(vectors[i].encrypt) {
-      time = RTIMER_NOW();
       ret = ccm_auth_encrypt_start(vectors[i].len_len, vectors[i].key_area,
                                    vectors[i].nonce, vectors[i].adata,
                                    vectors[i].adata_len, vectors[i].mdata,
                                    vectors[i].mdata_len, vectors[i].mic_len,
                                    &ccm_test_process);
-      time = RTIMER_NOW() - time;
+      time2 = RTIMER_NOW();
+      time = time2 - time;
+      total_time += time;
+      if(ret == AES_SUCCESS) {
+        PROCESS_WAIT_EVENT_UNTIL(ccm_auth_encrypt_check_status());
+        time2 = RTIMER_NOW() - time2;
+        total_time += time2;
+      }
       printf("ccm_auth_encrypt_start(): %s, %lu us\n", str_res[ret],
              (uint32_t)((uint64_t)time * 1000000 / RTIMER_SECOND));
       if(ret != AES_SUCCESS) {
         PROCESS_PAUSE();
         continue;
       }
-
-      PROCESS_WAIT_EVENT_UNTIL(ccm_auth_encrypt_check_status());
+      printf("ccm_auth_encrypt_check_status() wait: %lu us\n",
+             (uint32_t)((uint64_t)time2 * 1000000 / RTIMER_SECOND));
 
       time = RTIMER_NOW();
       ret = ccm_auth_encrypt_get_result(vectors[i].mic, vectors[i].mic_len);
       time = RTIMER_NOW() - time;
+      total_time += time;
       printf("ccm_auth_encrypt_get_result(): %s, %lu us\n", str_res[ret],
              (uint32_t)((uint64_t)time * 1000000 / RTIMER_SECOND));
       PROCESS_PAUSE();
@@ -316,26 +323,33 @@ PROCESS_THREAD(ccm_test_process, ev, data)
         puts("MIC OK");
       }
     } else {
-      time = RTIMER_NOW();
       ret = ccm_auth_decrypt_start(vectors[i].len_len, vectors[i].key_area,
                                    vectors[i].nonce, vectors[i].adata,
                                    vectors[i].adata_len, vectors[i].mdata,
                                    vectors[i].mdata_len, vectors[i].mic_len,
                                    &ccm_test_process);
-      time = RTIMER_NOW() - time;
+      time2 = RTIMER_NOW();
+      time = time2 - time;
+      total_time += time;
+      if(ret == AES_SUCCESS) {
+        PROCESS_WAIT_EVENT_UNTIL(ccm_auth_decrypt_check_status());
+        time2 = RTIMER_NOW() - time2;
+        total_time += time2;
+      }
       printf("ccm_auth_decrypt_start(): %s, %lu us\n", str_res[ret],
              (uint32_t)((uint64_t)time * 1000000 / RTIMER_SECOND));
       if(ret != AES_SUCCESS) {
         PROCESS_PAUSE();
         continue;
       }
-
-      PROCESS_WAIT_EVENT_UNTIL(ccm_auth_decrypt_check_status());
+      printf("ccm_auth_decrypt_check_status() wait: %lu us\n",
+             (uint32_t)((uint64_t)time2 * 1000000 / RTIMER_SECOND));
 
       time = RTIMER_NOW();
       ret = ccm_auth_decrypt_get_result(vectors[i].mdata, vectors[i].mdata_len,
                                         vectors[i].mic, vectors[i].mic_len);
       time = RTIMER_NOW() - time;
+      total_time += time;
       printf("ccm_auth_decrypt_get_result(): %s, %lu us\n", str_res[ret],
              (uint32_t)((uint64_t)time * 1000000 / RTIMER_SECOND));
       PROCESS_PAUSE();
@@ -351,7 +365,6 @@ PROCESS_THREAD(ccm_test_process, ev, data)
       }
     }
 
-    total_time = RTIMER_NOW() - total_time;
     printf("Total duration: %lu us\n",
            (uint32_t)((uint64_t)total_time * 1000000 / RTIMER_SECOND));
   }

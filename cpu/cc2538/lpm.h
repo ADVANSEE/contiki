@@ -101,7 +101,6 @@ void lpm_init(void);
  *
  * This PM selection heuristic has the following primary criteria:
  * - Is the RF off?
- * - Is the AES off?
  * - Are all registered peripherals permitting PM1+?
  * - Is the Sleep Timer scheduled to fire an interrupt?
  *

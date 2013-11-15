@@ -46,8 +46,10 @@
 #include "dev/crypto.h"
 #include "dev/sys-ctrl.h"
 #include "dev/nvic.h"
+#include "lpm.h"
 #include "reg.h"
 
+#include <stdbool.h>
 #include <stdint.h>
 #include <string.h>
 
@@ -77,10 +79,18 @@ aes_isr(void)
   ENERGEST_OFF(ENERGEST_TYPE_IRQ);
 }
 /*---------------------------------------------------------------------------*/
+static bool
+permit_pm1(void)
+{
+  return REG(AES_CTRL_ALG_SEL) == 0;
+}
+/*---------------------------------------------------------------------------*/
 void
 crypto_init(void)
 {
   volatile int i;
+
+  lpm_register_peripheral(permit_pm1);
 
   crypto_enable();
 
