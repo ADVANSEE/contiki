@@ -107,21 +107,6 @@
 
 #define ACK_LEN 3
 
-#if NULLRDC_802154_AUTOACK || NULLRDC_802154_AUTOACK_HW
-struct seqno {
-  rimeaddr_t sender;
-  uint8_t seqno;
-};
-
-#ifdef NETSTACK_CONF_MAC_SEQNO_HISTORY
-#define MAX_SEQNOS NETSTACK_CONF_MAC_SEQNO_HISTORY
-#else /* NETSTACK_CONF_MAC_SEQNO_HISTORY */
-#define MAX_SEQNOS 8
-#endif /* NETSTACK_CONF_MAC_SEQNO_HISTORY */
-
-static struct seqno received_seqnos[MAX_SEQNOS];
-#endif /* NULLRDC_802154_AUTOACK || NULLRDC_802154_AUTOACK_HW */
-
 /*---------------------------------------------------------------------------*/
 static int
 send_one_packet(mac_callback_t sent, void *ptr)
@@ -312,31 +297,12 @@ packet_input(void)
     int duplicate = 0;
 
 #if NULLRDC_802154_AUTOACK || NULLRDC_802154_AUTOACK_HW
-    /* Check for duplicate packet by comparing the sequence number
-       of the incoming packet with the last few ones we saw. */
-    int i, j;
-    for(i = 0; i < MAX_SEQNOS; ++i) {
-      if(rimeaddr_cmp(packetbuf_addr(PACKETBUF_ADDR_SENDER),
-                      &received_seqnos[i].sender)) {
-        if(packetbuf_attr(PACKETBUF_ATTR_PACKET_ID) == received_seqnos[i].seqno) {
-          /* Drop the packet. */
-          PRINTF("nullrdc: drop duplicate link layer packet %u\n",
-                 packetbuf_attr(PACKETBUF_ATTR_PACKET_ID));
-          duplicate = 1;
-        }
-        i++;
-        break;
-      }
-    }
-    if(!duplicate) {
-      /* Keep the last sequence number for each address as per 802.15.4e. */
-      for(j = i - 1; j > 0; --j) {
-        memcpy(&received_seqnos[j], &received_seqnos[j - 1],
-               sizeof(struct seqno));
-      }
-      received_seqnos[0].seqno = packetbuf_attr(PACKETBUF_ATTR_PACKET_ID);
-      rimeaddr_copy(&received_seqnos[0].sender,
-                    packetbuf_addr(PACKETBUF_ADDR_SENDER));
+    /* Check for duplicate packet. */
+    duplicate = packetbuf_is_duplicate();
+    if(duplicate) {
+      /* Drop the packet. */
+      PRINTF("nullrdc: drop duplicate link layer packet %u\n",
+             packetbuf_attr(PACKETBUF_ATTR_PACKET_ID));
     }
 #endif /* NULLRDC_802154_AUTOACK */
 
