@@ -38,7 +38,7 @@
  * \addtogroup cc2538
  * @{
  *
- * \defgroup cc2538-rom cc2538 ROM
+ * \defgroup cc2538-rom-util cc2538 ROM utility function library
  *
  * Driver for the cc2538 ROM utility function library
  * @{
@@ -46,57 +46,83 @@
  * \file
  * Header file for the cc2538 ROM utility function library driver
  */
-#ifndef ROM_H_
-#define ROM_H_
+#ifndef ROM_UTIL_H_
+#define ROM_UTIL_H_
 
 #include "contiki.h"
 
 #include <stddef.h>
 #include <stdint.h>
 /*---------------------------------------------------------------------------*/
-/** \name ROM API access table structure
+/** \name ROM utility function library API access table structure
  * @{
  */
-struct rom_api {
-  uint32_t  (*crc32)(uint8_t */*data*/, uint32_t/* byte_count*/);
-  uint32_t  (*get_flash_size)(void);
-  uint32_t  (*get_chip_id)(void);
-  int32_t   (*page_erase)(uint32_t/* flash_addr*/, uint32_t/* size*/);
-  int32_t   (*program_flash)(uint32_t */*ram_data*/, uint32_t/* flash_addr*/,
-                             uint32_t/* byte_count*/);
-  void      (*reset_device)(void);
-  void     *(*memset)(void */*s*/, int/* c*/, size_t/* n*/);
-  void     *(*memcpy)(void */*dest*/, const void */*src*/, size_t/* n*/);
-  int       (*memcmp)(const void */*s1*/, const void */*s2*/, size_t/* n*/);
-  void     *(*memmove)(void */*dest*/, const void */*src*/, size_t/* n*/);
+struct rom_util_api {
+  /** Calculate CRC32 over a given address range */
+  uint32_t (*crc32)(uint8_t *data, uint32_t byte_count);
+
+  /** Return the flash size */
+  uint32_t (*get_flash_size)(void);
+
+  /** Return the chip ID */
+  uint32_t (*get_chip_id)(void);
+
+  /** Erase flash pages */
+  int32_t (*page_erase)(uint32_t flash_addr, uint32_t size);
+
+  /** Program the flash */
+  int32_t (*program_flash)(uint32_t *ram_data, uint32_t flash_addr,
+                           uint32_t byte_count);
+
+  /** Perform a system reset of the SoC */
+  void (*reset_device)(void);
+
+  /** Set a memory area to a specified value */
+  void *(*memset)(void *s, int c, size_t n);
+
+  /** Copy data from one memory area to another */
+  void *(*memcpy)(void *dest, const void *src, size_t n);
+
+  /** Compare two memory areas */
+  int (*memcmp)(const void *s1, const void *s2, size_t n);
+
+  /** Move a block of data from one memory area to another */
+  void *(*memmove)(void *dest, const void *src, size_t n);
 };
 /** @} */
 /*---------------------------------------------------------------------------*/
-/** \name Pointer to the ROM API table
+/** \name Pointer to the ROM utility function library API table
  * @{
  */
-#define ROM_API                 ((struct rom_api *)0x00000048)
+#define ROM_UTIL_API            ((struct rom_util_api *)0x00000048)
 /** @} */
 /*---------------------------------------------------------------------------*/
-/** \name ROM API accessor macros
+/** \name ROM utility function library API accessor macros
  * @{
  */
-#define ROM_crc32(data, byte_count)       (ROM_API->crc32((data), (byte_count)))
-#define ROM_get_flash_size()              (ROM_API->get_flash_size())
-#define ROM_get_chip_id()                 (ROM_API->get_chip_id())
-#define ROM_page_erase(flash_addr, size)  (ROM_API->page_erase((flash_addr), \
-                                                               (size)))
-#define ROM_program_flash(ram_data, flash_addr, byte_count) \
-                                          (ROM_API->program_flash((ram_data), \
-                                                    (flash_addr), (byte_count)))
-#define ROM_reset_device()                (ROM_API->reset_device())
-#define ROM_memset(s, c, n)               (ROM_API->memset((s), (c), (n)))
-#define ROM_memcpy(dest, src, n)          (ROM_API->memcpy((dest), (src), (n)))
-#define ROM_memcmp(s1, s2, n)             (ROM_API->memcmp((s1), (s2), (n)))
-#define ROM_memmove(dest, src, n)         (ROM_API->memmove((dest), (src), (n)))
+#define rom_util_crc32(data, byte_count) \
+  (ROM_UTIL_API->crc32((data), (byte_count)))
+#define rom_util_get_flash_size() \
+  (ROM_UTIL_API->get_flash_size())
+#define rom_util_get_chip_id() \
+  (ROM_UTIL_API->get_chip_id())
+#define rom_util_page_erase(flash_addr, size) \
+  (ROM_UTIL_API->page_erase((flash_addr), (size)))
+#define rom_util_program_flash(ram_data, flash_addr, byte_count) \
+  (ROM_UTIL_API->program_flash((ram_data), (flash_addr), (byte_count)))
+#define rom_util_reset_device() \
+  (ROM_UTIL_API->reset_device())
+#define rom_util_memset(s, c, n) \
+  (ROM_UTIL_API->memset((s), (c), (n)))
+#define rom_util_memcpy(dest, src, n) \
+  (ROM_UTIL_API->memcpy((dest), (src), (n)))
+#define rom_util_memcmp(s1, s2, n) \
+  (ROM_UTIL_API->memcmp((s1), (s2), (n)))
+#define rom_util_memmove(dest, src, n) \
+  (ROM_UTIL_API->memmove((dest), (src), (n)))
 /** @} */
 
-#endif /* ROM_H_ */
+#endif /* ROM_UTIL_H_ */
 
 /**
  * @}
