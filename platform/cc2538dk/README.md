@@ -28,7 +28,7 @@ In terms of hardware support, the following drivers have been implemented:
     * Random number generator
     * Low Power Modes
     * General-Purpose Timers. NB: GPT0 is in use by the platform code, the remaining GPTs are available for application development.
-    * Cryptoprocessor (AES-CCM-128, SHA-256)
+    * Cryptoprocessor (AES-CCM-256, SHA-256)
   * SmartRF06 EB and BB peripherals
     * LEDs
     * Buttons
