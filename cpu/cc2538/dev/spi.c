@@ -43,18 +43,18 @@
 #include "dev/gpio.h"
 
 /* Default: Motorola mode 3 with 8-bit data words */
-#ifndef CC2538_SPI_PHASE
-#define CC2538_SPI_PHASE         SSI_CR0_SPH
+#ifndef SPI_CONF_PHASE
+#define SPI_CONF_PHASE           SSI_CR0_SPH
 #endif
-#ifndef CC2538_SPI_POLARITY
-#define CC2538_SPI_POLARITY      SSI_CR0_SPO
+#ifndef SPI_CONF_POLARITY
+#define SPI_CONF_POLARITY        SSI_CR0_SPO
 #endif
-#ifndef CC2538_SPI_DATA_SIZE
-#define CC2538_SPI_DATA_SIZE     8
+#ifndef SPI_CONF_DATA_SIZE
+#define SPI_CONF_DATA_SIZE       8
 #endif
 
-#if CC2538_SPI_DATA_SIZE < 4 || CC2538_SPI_DATA_SIZE > 16
-#error CC2538_SPI_DATA_SIZE must be set between 4 and 16 inclusive.
+#if SPI_CONF_DATA_SIZE < 4 || SPI_CONF_DATA_SIZE > 16
+#error SPI_CONF_DATA_SIZE must be set between 4 and 16 inclusive.
 #endif
 
 /**
@@ -67,9 +67,9 @@
  *    CC2538_SPI_SEL_PORT_NUM    CC2538_SPI_SEL_PIN_NUM
  *
  * This sets the mode to Motorola SPI with the following format options:
- *    CC2538_SPI_PHASE:          0 or SSI_CR0_SPH
- *    CC2538_SPI_POLARITY:       0 or SSI_CR0_SPO
- *    CC2538_SPI_DATA_SIZE:      4 to 16 bits
+ *    SPI_CONF_PHASE:            0 or SSI_CR0_SPH
+ *    SPI_CONF_POLARITY:         0 or SSI_CR0_SPO
+ *    SPI_CONF_DATA_SIZE:        4 to 16 bits
  */
 void
 spi_init(void)
@@ -104,7 +104,7 @@ spi_init(void)
   REG(SSI0_BASE + SSI_CPSR) = 2;
 
   /* Put the ssi in Motorola SPI mode using the provided format options */
-  REG(SSI0_BASE + SSI_CR0) = CC2538_SPI_PHASE | CC2538_SPI_POLARITY | (CC2538_SPI_DATA_SIZE - 1);
+  REG(SSI0_BASE + SSI_CR0) = SPI_CONF_PHASE | SPI_CONF_POLARITY | (SPI_CONF_DATA_SIZE - 1);
 
   /* Enable the SSI */
   REG(SSI0_BASE + SSI_CR1) |= SSI_CR1_SSE;
