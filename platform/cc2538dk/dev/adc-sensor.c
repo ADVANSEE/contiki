@@ -45,6 +45,9 @@
 
 #include <stdint.h>
 
+#define ADC_ALS_PWR_PORT_BASE    GPIO_PORT_TO_BASE(ADC_ALS_PWR_PORT)
+#define ADC_ALS_PWR_PIN_MASK     GPIO_PIN_MASK(ADC_ALS_PWR_PIN)
+#define ADC_ALS_OUT_PIN_MASK     GPIO_PIN_MASK(ADC_ALS_OUT_PIN)
 /*---------------------------------------------------------------------------*/
 static int
 value(int type)
@@ -61,8 +64,7 @@ value(int type)
     break;
   case ADC_SENSOR_ALS:
     channel = SOC_ADC_ADCCON_CH_AIN0 + ADC_ALS_OUT_PIN;
-    GPIO_SET_PIN(GPIO_PORT_TO_BASE(ADC_ALS_PWR_PORT),
-                 GPIO_PIN_MASK(ADC_ALS_PWR_PIN));
+    GPIO_SET_PIN(ADC_ALS_PWR_PORT_BASE, ADC_ALS_PWR_PIN_MASK);
     clock_delay_usec(2000);
     break;
   default:
@@ -72,8 +74,7 @@ value(int type)
   res = adc_get(channel, SOC_ADC_ADCCON_REF_INT, SOC_ADC_ADCCON_DIV_512);
 
   if(type == ADC_SENSOR_ALS) {
-    GPIO_CLR_PIN(GPIO_PORT_TO_BASE(ADC_ALS_PWR_PORT),
-                 GPIO_PIN_MASK(ADC_ALS_PWR_PIN));
+    GPIO_CLR_PIN(ADC_ALS_PWR_PORT_BASE, ADC_ALS_PWR_PIN_MASK);
   }
 
   return res;
@@ -84,18 +85,13 @@ configure(int type, int value)
 {
   switch(type) {
   case SENSORS_HW_INIT:
-    GPIO_SOFTWARE_CONTROL(GPIO_PORT_TO_BASE(ADC_ALS_PWR_PORT),
-                          GPIO_PIN_MASK(ADC_ALS_PWR_PIN));
-    GPIO_SET_OUTPUT(GPIO_PORT_TO_BASE(ADC_ALS_PWR_PORT),
-                    GPIO_PIN_MASK(ADC_ALS_PWR_PIN));
-    GPIO_CLR_PIN(GPIO_PORT_TO_BASE(ADC_ALS_PWR_PORT),
-                 GPIO_PIN_MASK(ADC_ALS_PWR_PIN));
+    GPIO_SOFTWARE_CONTROL(ADC_ALS_PWR_PORT_BASE, ADC_ALS_PWR_PIN_MASK);
+    GPIO_SET_OUTPUT(ADC_ALS_PWR_PORT_BASE, ADC_ALS_PWR_PIN_MASK);
+    GPIO_CLR_PIN(ADC_ALS_PWR_PORT_BASE, ADC_ALS_PWR_PIN_MASK);
     ioc_set_over(ADC_ALS_PWR_PORT, ADC_ALS_PWR_PIN, IOC_OVERRIDE_DIS);
 
-    GPIO_SOFTWARE_CONTROL(GPIO_PORT_TO_BASE(GPIO_A_NUM),
-                          GPIO_PIN_MASK(ADC_ALS_OUT_PIN));
-    GPIO_SET_INPUT(GPIO_PORT_TO_BASE(GPIO_A_NUM),
-                   GPIO_PIN_MASK(ADC_ALS_OUT_PIN));
+    GPIO_SOFTWARE_CONTROL(GPIO_A_BASE, ADC_ALS_OUT_PIN_MASK);
+    GPIO_SET_INPUT(GPIO_A_BASE, ADC_ALS_OUT_PIN_MASK);
     ioc_set_over(GPIO_A_NUM, ADC_ALS_OUT_PIN, IOC_OVERRIDE_ANA);
 
     adc_init();
