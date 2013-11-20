@@ -44,6 +44,7 @@
 #include "dev/watchdog.h"
 #include "lib/random.h"
 #include "net/netstack.h"
+#include "net/mac/mac-sequence.h"
 #include "net/mac/xmac.h"
 #include "net/rime.h"
 #include "net/rime/timesynch.h"
@@ -800,10 +801,11 @@ input_packet(void)
 	off();
 
         /* Check for duplicate packet. */
-        if(packetbuf_is_duplicate()) {
+        if(mac_sequence_is_duplicate()) {
           /* Drop the packet. */
           return;
         }
+        mac_sequence_register_seqno();
 
 #if XMAC_CONF_COMPOWER
 	/* Accumulate the power consumption for the packet reception. */

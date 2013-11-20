@@ -313,17 +313,6 @@ int packetbuf_hdralloc(int size);
  */
 int packetbuf_hdrreduce(int size);
 
-/**
- * \brief      Tell whether the packetbuf is a duplicate packet
- * \retval     Non-zero if the packetbuf is a duplicate packet, zero otherwise
- *
- *             This function is used to check for duplicate packet by comparing
- *             the sequence number of the incoming packet with the last few ones
- *             we saw, filtering with the Rime address.
- *
- */
-int packetbuf_is_duplicate(void);
-
 /* Packet attributes stuff below: */
 
 typedef uint16_t packetbuf_attr_t;

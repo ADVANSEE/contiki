@@ -56,6 +56,7 @@
 #include "net/rime.h"
 #include "net/netstack.h"
 #include "net/mac/mac.h"
+#include "net/mac/mac-sequence.h"
 #include "net/mac/lpp.h"
 #include "net/packetbuf.h"
 #include "net/rime/announcement.h"
@@ -1017,12 +1018,13 @@ input_packet(void)
 #endif /* WITH_ADAPTIVE_OFF_TIME */
 
     /* Check for duplicate packet. */
-    if(packetbuf_is_duplicate()) {
+    if(mac_sequence_is_duplicate()) {
       /* Drop the packet. */
       /*printf("Drop duplicate LPP layer packet %d\n",
              packetbuf_attr(PACKETBUF_ATTR_PACKET_ID));*/
       return;
     }
+    mac_sequence_register_seqno();
 
     NETSTACK_MAC.input();
   }

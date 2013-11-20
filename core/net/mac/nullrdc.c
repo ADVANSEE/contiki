@@ -38,6 +38,7 @@
  *         Niclas Finne <nfi@sics.se>
  */
 
+#include "net/mac/mac-sequence.h"
 #include "net/mac/nullrdc.h"
 #include "net/packetbuf.h"
 #include "net/queuebuf.h"
@@ -298,11 +299,13 @@ packet_input(void)
 
 #if NULLRDC_802154_AUTOACK || NULLRDC_802154_AUTOACK_HW
     /* Check for duplicate packet. */
-    duplicate = packetbuf_is_duplicate();
+    duplicate = mac_sequence_is_duplicate();
     if(duplicate) {
       /* Drop the packet. */
       PRINTF("nullrdc: drop duplicate link layer packet %u\n",
              packetbuf_attr(PACKETBUF_ATTR_PACKET_ID));
+    } else {
+      mac_sequence_register_seqno();
     }
 #endif /* NULLRDC_802154_AUTOACK */
 

@@ -44,6 +44,7 @@
 #include "dev/radio.h"
 #include "dev/watchdog.h"
 #include "lib/random.h"
+#include "net/mac/mac-sequence.h"
 #include "net/mac/contikimac.h"
 #include "net/netstack.h"
 #include "net/rime.h"
@@ -979,11 +980,12 @@ input_packet(void)
       }
 
       /* Check for duplicate packet. */
-      if(packetbuf_is_duplicate()) {
+      if(mac_sequence_is_duplicate()) {
         /* Drop the packet. */
         /*        printf("Drop duplicate ContikiMAC layer packet\n");*/
         return;
       }
+      mac_sequence_register_seqno();
 
 #if CONTIKIMAC_CONF_COMPOWER
       /* Accumulate the power consumption for the packet reception. */
