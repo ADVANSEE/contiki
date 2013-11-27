@@ -15,8 +15,6 @@ endif
 endif
 endif
 
-# variable for root Makefile.include
-WITH_UIP6=1
 # for some platforms
 UIP_CONF_IPV6=1
 

@@ -43,8 +43,8 @@
  */
 
 
-#ifndef __ICMP6_H__
-#define __ICMP6_H__
+#ifndef ICMP6_H_
+#define ICMP6_H_
 
 #include "net/uip.h"
 
@@ -164,6 +164,6 @@ uip_icmp6_echo_reply_callback_rm(struct uip_icmp6_echo_reply_notification *n);
 
 /** @} */
 
-#endif /*__ICMP6_H__*/
+#endif /*ICMP6_H_*/
 /** @} */
 

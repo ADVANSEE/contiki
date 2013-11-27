@@ -36,8 +36,8 @@
  *
  */
 
-#ifndef __FLASH_H__
-#define __FLASH_H__
+#ifndef FLASH_H_
+#define FLASH_H_
 
 /**
  * Setup function to be called before any of the flash programming functions.
@@ -85,4 +85,4 @@ uint16_t flash_read(unsigned long addr);
  */
 void flash_clear(unsigned long addr);
 
-#endif /* __FLASH_H__ */
+#endif /* FLASH_H_ */
