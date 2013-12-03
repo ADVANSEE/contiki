@@ -83,9 +83,9 @@ notify(uint8_t mask, uint8_t port)
 void
 gpio_port_a_isr()
 {
-  ENERGEST_ON(ENERGEST_TYPE_IRQ);
-
   lpm_exit();
+
+  ENERGEST_ON(ENERGEST_TYPE_IRQ);
 
   notify(REG(GPIO_A_BASE | GPIO_MIS), GPIO_A_NUM);
 
@@ -98,9 +98,9 @@ gpio_port_a_isr()
 void
 gpio_port_b_isr()
 {
-  ENERGEST_ON(ENERGEST_TYPE_IRQ);
-
   lpm_exit();
+
+  ENERGEST_ON(ENERGEST_TYPE_IRQ);
 
   notify(REG(GPIO_B_BASE | GPIO_MIS), GPIO_B_NUM);
 
@@ -113,9 +113,9 @@ gpio_port_b_isr()
 void
 gpio_port_c_isr()
 {
-  ENERGEST_ON(ENERGEST_TYPE_IRQ);
-
   lpm_exit();
+
+  ENERGEST_ON(ENERGEST_TYPE_IRQ);
 
   notify(REG(GPIO_C_BASE | GPIO_MIS), GPIO_C_NUM);
 
@@ -128,9 +128,9 @@ gpio_port_c_isr()
 void
 gpio_port_d_isr()
 {
-  ENERGEST_ON(ENERGEST_TYPE_IRQ);
-
   lpm_exit();
+
+  ENERGEST_ON(ENERGEST_TYPE_IRQ);
 
   notify(REG(GPIO_D_BASE | GPIO_MIS), GPIO_D_NUM);
 
