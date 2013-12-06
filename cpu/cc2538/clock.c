@@ -116,9 +116,9 @@ clock_time(void)
 }
 /*---------------------------------------------------------------------------*/
 void
-clock_set_seconds(unsigned long secs)
+clock_set_seconds(unsigned long sec)
 {
-  rt_ticks_epoch = (uint64_t)secs * RTIMER_SECOND;
+  rt_ticks_epoch = (uint64_t)sec * RTIMER_SECOND;
 }
 /*---------------------------------------------------------------------------*/
 CCIF unsigned long
