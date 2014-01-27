@@ -250,7 +250,7 @@ uip_icmp6_error_output(uint8_t type, uint8_t code, uint32_t param) {
 
 /*---------------------------------------------------------------------------*/
 void
-uip_icmp6_send(uip_ipaddr_t *dest, int type, int code, int payload_len)
+uip_icmp6_send(const uip_ipaddr_t *dest, int type, int code, int payload_len)
 {
 
   UIP_IP_BUF->vtc = 0x60;
@@ -306,6 +306,7 @@ uip_icmp6_echo_reply_input(void)
                 (uip_len - UIP_IPH_LEN - temp_ext_len - UIP_ICMPH_LEN));
       }
       uip_ext_len = temp_ext_len;
+      uip_len -= uip_ext_len;
     } else {
 #endif /* UIP_CONF_IPV6_RPL */
       /* If there were extension headers*/
@@ -337,7 +338,7 @@ uip_icmp6_echo_reply_input(void)
       if(n->callback != NULL) {
         n->callback(&sender, ttl,
                     (uint8_t *)&UIP_ICMP_BUF[sizeof(struct uip_icmp_hdr)],
-                    uip_len - sizeof(struct uip_icmp_hdr));
+                    uip_len - sizeof(struct uip_icmp_hdr) - UIP_IPH_LEN);
       }
     }
   }
